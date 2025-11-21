@@ -1,22 +1,34 @@
 from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 import smtplib
-from email.mime.text import MIMEText  
-from email.mime.multipart import MIMEMultipart  
+from email.mime.text import MIMEText  
+from email.mime.multipart import MIMEMultipart  
 import os
 from dotenv import load_dotenv
 import logging
 from datetime import datetime
+from celery import Celery # ⬅️ New Import
 
 # Load environment variables
 load_dotenv()
 
-app = Flask(__name__)
-CORS(app)
-
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# --- Celery Configuration ---
+# ⚠️ IMPORTANT: Set REDIS_URL in your environment variables
+REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0') 
+
+celery_app = Celery(
+    'portfolio_tasks',
+    broker=REDIS_URL,
+    backend=REDIS_URL # Optional, for storing task results
+)
+# ----------------------------
+
+app = Flask(__name__)
+CORS(app)
 
 class EmailConfig:
     SMTP_SERVER = os.getenv('SMTP_SERVER', 'smtp.gmail.com')
@@ -25,10 +37,15 @@ class EmailConfig:
     EMAIL_PASSWORD = os.getenv('EMAIL_PASSWORD', '')
     ADMIN_EMAIL = os.getenv('ADMIN_EMAIL', 'gauravdhangar50@gmail.com')
 
-def send_email(name, email, subject, message):
-    """Send email notification for collaboration inquiry"""
+
+@celery_app.task(bind=True, max_retries=3, default_retry_delay=60)
+def send_email_task(self, name, email, subject, message):
+    """
+    Celery task to handle sending the email in the background.
+    Uses 'bind=True' to access the task instance ('self') for retries.
+    """
     try:
-        print(f"📧 Attempting to send email from {name} ({email})")
+        logger.info(f"📧 Attempting to send email in background from {name} ({email})")
         
         # Create message
         msg = MIMEMultipart()
@@ -36,7 +53,7 @@ def send_email(name, email, subject, message):
         msg['To'] = EmailConfig.ADMIN_EMAIL
         msg['Subject'] = f"🎯 Portfolio Collaboration: {subject}"
         
-        # HTML email template
+        # HTML email template (same as before)
         html_body = f"""
         <html>
             <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
@@ -68,24 +85,23 @@ def send_email(name, email, subject, message):
         
         msg.attach(MIMEText(html_body, 'html'))
         
-        print(f"🔗 Connecting to {EmailConfig.SMTP_SERVER}:{EmailConfig.SMTP_PORT}")
-        server = smtplib.SMTP(EmailConfig.SMTP_SERVER, EmailConfig.SMTP_PORT)
+        logger.info(f"🔗 Connecting to {EmailConfig.SMTP_SERVER}:{EmailConfig.SMTP_PORT}")
+        # Add a timeout to the SMTP connection to avoid indefinite hanging
+        server = smtplib.SMTP(EmailConfig.SMTP_SERVER, EmailConfig.SMTP_PORT, timeout=30) 
         server.starttls()
-        print("🔐 Attempting login...")
+        logger.info("🔐 Attempting login...")
         server.login(EmailConfig.EMAIL_USERNAME, EmailConfig.EMAIL_PASSWORD)
-        print("📤 Sending email...")
+        logger.info("📤 Sending email...")
         server.send_message(msg)
         server.quit()
         
-        print("✅ Email sent successfully!")
-        logger.info(f"Email sent successfully for inquiry from {name}")
+        logger.info("✅ Email sent successfully in background!")
         return True
         
-    except Exception as e:
-        error_msg = f"Failed to send email: {str(e)}"
-        print(f"❌ {error_msg}")
-        logger.error(error_msg)
-        return False
+    except Exception as exc:
+        logger.error(f"❌ Failed to send email (Task ID: {self.request.id}): {str(exc)}")
+        # Attempt to retry the task on failure
+        raise self.retry(exc=exc) 
 
 def save_to_database(name, email, subject, message):
     """Save inquiry to a simple text file (can be replaced with real database)"""
@@ -110,29 +126,20 @@ def serve_portfolio():
 
 @app.route('/api/contact', methods=['POST'])
 def handle_contact():
-    """Handle collaboration inquiry form submissions"""
+    """Handle collaboration inquiry form submissions - now triggers task asynchronously"""
     try:
-        # Get form data
         data = request.get_json()
         
-        if not data:
-            return jsonify({
+        if not data or not all([data.get('name'), data.get('email'), data.get('subject'), data.get('message')]):
+             return jsonify({
                 'success': False,
-                'message': 'No data received'
+                'message': 'All fields are required'
             }), 400
         
-        # Extract form fields
         name = data.get('name', '').strip()
         email = data.get('email', '').strip()
         subject = data.get('subject', '').strip()
         message = data.get('message', '').strip()
-        
-        # Validate required fields
-        if not all([name, email, subject, message]):
-            return jsonify({
-                'success': False,
-                'message': 'All fields are required'
-            }), 400
         
         # Validate email format
         if '@' not in email or '.' not in email:
@@ -141,30 +148,21 @@ def handle_contact():
                 'message': 'Please enter a valid email address'
             }), 400
         
-        # Log the inquiry
-        print(f"📨 New inquiry from {name} ({email}): {subject}")
-        logger.info(f"New inquiry from {name} ({email}): {subject}")
-        
-        # Save to database
+        # Log and Save (Fast operations)
+        logger.info(f"New inquiry received from {name} ({email}): {subject}")
         save_to_database(name, email, subject, message)
         
-        # Send email notification
-        email_sent = send_email(name, email, subject, message)
+        # 💥 NEW: Trigger the email sending as an asynchronous task
+        send_email_task.delay(name, email, subject, message)
         
-        if email_sent:
-            return jsonify({
-                'success': True,
-                'message': 'Thank you for your message! I\'ll get back to you soon.'
-            })
-        else:
-            return jsonify({
-                'success': True,
-                'message': 'Message received! There was an issue with email notification, but your inquiry has been logged.'
-            })
+        # Return success immediately (Crucial to avoid worker timeout!)
+        return jsonify({
+            'success': True,
+            'message': 'Thank you for your message! Your inquiry has been logged, and the email notification is being processed.'
+        })
             
     except Exception as e:
         error_msg = f"Error processing contact form: {str(e)}"
-        print(f"❌ {error_msg}")
         logger.error(error_msg)
         return jsonify({
             'success': False,
@@ -184,25 +182,43 @@ def debug_email():
         'SMTP_PORT': EmailConfig.SMTP_PORT,
         'EMAIL_USERNAME': EmailConfig.EMAIL_USERNAME,
         'EMAIL_PASSWORD_SET': bool(EmailConfig.EMAIL_PASSWORD),
-        'ADMIN_EMAIL': EmailConfig.ADMIN_EMAIL
+        'ADMIN_EMAIL': EmailConfig.ADMIN_EMAIL,
+        'CELERY_BROKER': REDIS_URL
     })
-    
-@app.route('/api/test-form', methods=['POST'])
-def test_form():
-    """Test endpoint to check form data reception"""
+
+# --- Test Task for Celery Debugging ---
+@celery_app.task
+def test_email(to_email):
     try:
-        data = request.get_json()
-        print("📨 Received form data:", data)
-        
-        return jsonify({
-            'success': True,
-            'message': 'Form data received successfully!',
-            'received_data': data
-        })
+        msg = MIMEMultipart()
+        msg['From'] = EmailConfig.EMAIL_USERNAME
+        msg['To'] = to_email
+        msg['Subject'] = "Celery Test Success"
+        msg.attach(MIMEText("This is a test email sent asynchronously via Celery.", 'plain'))
+
+        server = smtplib.SMTP(EmailConfig.SMTP_SERVER, EmailConfig.SMTP_PORT, timeout=10)
+        server.starttls()
+        server.login(EmailConfig.EMAIL_USERNAME, EmailConfig.EMAIL_PASSWORD)
+        server.send_message(msg)
+        server.quit()
+        logger.info(f"Test email successfully sent to {to_email}")
+        return True
     except Exception as e:
-        print("❌ Error in test form:", e)
-        return jsonify({'success': False, 'error': str(e)})
+        logger.error(f"Test email failed: {str(e)}")
+        return False
+
+@app.route('/api/test-email-trigger', methods=['GET'])
+def trigger_test_email():
+    """Endpoint to trigger a test email via Celery"""
+    test_email_to = EmailConfig.ADMIN_EMAIL
+    test_email.delay(test_email_to)
+    return jsonify({
+        'success': True, 
+        'message': f'Test email task triggered for {test_email_to}. Check Celery worker logs for status.'
+    })
+# ---------------------------------------
 
 # if __name__ == '__main__':
+#     # NOTE: In production (Render/Gunicorn), this block is usually not used.
+#     # Gunicorn or your specific hosting platform should handle running the app.
 #     app.run(debug=True, host='0.0.0.0', port=5000)
-
