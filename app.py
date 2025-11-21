@@ -7,7 +7,7 @@ import os
 from dotenv import load_dotenv
 import logging
 from datetime import datetime
-from celery import Celery
+from celery import Celery # <-- Imports the library that caused the error
 
 # Load environment variables
 load_dotenv()
@@ -17,7 +17,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # --- Celery Configuration ---
-# ⚠️ IMPORTANT: Set REDIS_URL in your environment variables
+# ⚠️ IMPORTANT: Set REDIS_URL environment variable 
 REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0') 
 
 celery_app = Celery(
@@ -121,11 +121,12 @@ def save_to_database(name, email, subject, message):
 @app.route('/')
 def serve_portfolio():
     """Serve the main portfolio page"""
-    return render_template('index.html')
+    # Assuming you have an index.html in a templates folder
+    return render_template('index.html') 
 
 @app.route('/api/contact', methods=['POST'])
 def handle_contact():
-    """Handle collaboration inquiry form submissions - now triggers task asynchronously"""
+    """Handle collaboration inquiry form submissions - triggers task asynchronously"""
     try:
         data = request.get_json()
         
@@ -151,7 +152,7 @@ def handle_contact():
         logger.info(f"New inquiry received from {name} ({email}): {subject}")
         save_to_database(name, email, subject, message)
         
-        # 💥 Trigger the email sending as an asynchronous task
+        # Trigger the email sending as an asynchronous task
         send_email_task.delay(name, email, subject, message)
         
         # Return success immediately (Crucial to avoid worker timeout!)
@@ -195,7 +196,6 @@ def test_email(to_email):
         msg['Subject'] = "Celery Test Success"
         msg.attach(MIMEText("This is a test email sent asynchronously via Celery.", 'plain'))
 
-        # Using a shorter timeout for the test
         server = smtplib.SMTP(EmailConfig.SMTP_SERVER, EmailConfig.SMTP_PORT, timeout=10)
         server.starttls()
         server.login(EmailConfig.EMAIL_USERNAME, EmailConfig.EMAIL_PASSWORD)
@@ -217,7 +217,3 @@ def trigger_test_email():
         'message': f'Test email task triggered for {test_email_to}. Check Celery worker logs for status.'
     })
 # ---------------------------------------
-
-# NOTE: The __main__ block is intentionally commented out for Gunicorn deployment.
-# if __name__ == '__main__':
-#     app.run(debug=True, host='0.0.0.0', port=5000)
