@@ -7,7 +7,8 @@ import os
 from dotenv import load_dotenv
 import logging
 from datetime import datetime
-from celery import Celery # <-- Imports the library that caused the error
+from celery import Celery 
+import sys # Import for system exit
 
 # Load environment variables
 load_dotenv()
@@ -17,13 +18,21 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # --- Celery Configuration ---
-# ⚠️ IMPORTANT: Set REDIS_URL environment variable 
-REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0') 
+# ⚠️ IMPORTANT: Get REDIS_URL from environment variables
+REDIS_URL = os.getenv('REDIS_URL') 
+
+# If REDIS_URL is not set, we will use the default for Celery's configuration.
+# The critical check at the end will fail the deploy if it's not set.
+if not REDIS_URL:
+    # Local default (will cause Connection Refused on Render if not set externally)
+    REDIS_URL_FOR_CELERY = 'redis://localhost:6379/0'
+else:
+    REDIS_URL_FOR_CELERY = REDIS_URL
 
 celery_app = Celery(
     'portfolio_tasks',
-    broker=REDIS_URL,
-    backend=REDIS_URL # Optional, for storing task results
+    broker=REDIS_URL_FOR_CELERY,
+    backend=REDIS_URL_FOR_CELERY # Broker and backend use the same URL
 )
 # ----------------------------
 
@@ -85,12 +94,10 @@ def send_email_task(self, name, email, subject, message):
         msg.attach(MIMEText(html_body, 'html'))
         
         logger.info(f"🔗 Connecting to {EmailConfig.SMTP_SERVER}:{EmailConfig.SMTP_PORT}")
-        # Added explicit timeout to prevent hanging
         server = smtplib.SMTP(EmailConfig.SMTP_SERVER, EmailConfig.SMTP_PORT, timeout=30) 
         server.starttls()
         logger.info("🔐 Attempting login...")
         server.login(EmailConfig.EMAIL_USERNAME, EmailConfig.EMAIL_PASSWORD)
-        logger.info("📤 Sending email...")
         server.send_message(msg)
         server.quit()
         
@@ -99,7 +106,6 @@ def send_email_task(self, name, email, subject, message):
         
     except Exception as exc:
         logger.error(f"❌ Failed to send email (Task ID: {self.request.id}, Retries: {self.request.retries}): {str(exc)}")
-        # Retry the task on failure (up to max_retries)
         raise self.retry(exc=exc) 
 
 def save_to_database(name, email, subject, message):
@@ -121,7 +127,6 @@ def save_to_database(name, email, subject, message):
 @app.route('/')
 def serve_portfolio():
     """Serve the main portfolio page"""
-    # Assuming you have an index.html in a templates folder
     return render_template('index.html') 
 
 @app.route('/api/contact', methods=['POST'])
@@ -183,7 +188,7 @@ def debug_email():
         'EMAIL_USERNAME': EmailConfig.EMAIL_USERNAME,
         'EMAIL_PASSWORD_SET': bool(EmailConfig.EMAIL_PASSWORD),
         'ADMIN_EMAIL': EmailConfig.ADMIN_EMAIL,
-        'CELERY_BROKER': REDIS_URL
+        'CELERY_BROKER': REDIS_URL_FOR_CELERY
     })
 
 # --- Test Task for Celery Debugging ---
@@ -217,3 +222,17 @@ def trigger_test_email():
         'message': f'Test email task triggered for {test_email_to}. Check Celery worker logs for status.'
     })
 # ---------------------------------------
+
+# 🚨 CRITICAL ENVIRONMENT CHECKS 🚨
+# These checks run when Gunicorn imports the application module.
+# They help diagnose environment configuration problems immediately.
+
+if not REDIS_URL:
+    logger.critical(
+        "\n\n========================================================================\n"
+        "❌ CRITICAL CONFIG ERROR: REDIS_URL is MISSING or defaults to localhost.\n"
+        "   - Action: This Web Service deploy may FAIL. You MUST set REDIS_URL to your external Redis instance.\n"
+        "========================================================================\n"
+    )
+    # Force process exit to fail the deploy early if config is missing
+    sys.exit(1)
