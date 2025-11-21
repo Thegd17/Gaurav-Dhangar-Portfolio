@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 import logging
 from datetime import datetime
 from celery import Celery 
-import sys # Import for system exit
+import sys 
 
 # Load environment variables
 load_dotenv()
@@ -17,22 +17,23 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# --- Celery Configuration ---
-# ⚠️ IMPORTANT: Get REDIS_URL from environment variables
-REDIS_URL = os.getenv('REDIS_URL') 
+# --- Celery Configuration (NEW: Using Database URL) ---
+# ⚠️ IMPORTANT: Get DATABASE_URL from environment variables
+# Celery will use this database as both the broker and the backend.
+DATABASE_URL = os.getenv('DATABASE_URL') 
 
-# If REDIS_URL is not set, we will use the default for Celery's configuration.
-# The critical check at the end will fail the deploy if it's not set.
-if not REDIS_URL:
-    # Local default (will cause Connection Refused on Render if not set externally)
-    REDIS_URL_FOR_CELERY = 'redis://localhost:6379/0'
+if not DATABASE_URL:
+    # Use a default URL, but rely on the critical check to fail the deploy
+    # Note: Celery requires the 'postgresql' schema, not 'postgres'
+    CELERY_BROKER_URL = 'db+postgresql://user:pass@localhost:5432/db'
 else:
-    REDIS_URL_FOR_CELERY = REDIS_URL
+    # The 'db+postgres...' scheme tells Celery to use SQLAlchemy with PostgreSQL
+    CELERY_BROKER_URL = f"db+{DATABASE_URL}" 
 
 celery_app = Celery(
     'portfolio_tasks',
-    broker=REDIS_URL_FOR_CELERY,
-    backend=REDIS_URL_FOR_CELERY # Broker and backend use the same URL
+    broker=CELERY_BROKER_URL,
+    backend=CELERY_BROKER_URL 
 )
 # ----------------------------
 
@@ -96,7 +97,6 @@ def send_email_task(self, name, email, subject, message):
         logger.info(f"🔗 Connecting to {EmailConfig.SMTP_SERVER}:{EmailConfig.SMTP_PORT}")
         server = smtplib.SMTP(EmailConfig.SMTP_SERVER, EmailConfig.SMTP_PORT, timeout=30) 
         server.starttls()
-        logger.info("🔐 Attempting login...")
         server.login(EmailConfig.EMAIL_USERNAME, EmailConfig.EMAIL_PASSWORD)
         server.send_message(msg)
         server.quit()
@@ -188,7 +188,7 @@ def debug_email():
         'EMAIL_USERNAME': EmailConfig.EMAIL_USERNAME,
         'EMAIL_PASSWORD_SET': bool(EmailConfig.EMAIL_PASSWORD),
         'ADMIN_EMAIL': EmailConfig.ADMIN_EMAIL,
-        'CELERY_BROKER': REDIS_URL_FOR_CELERY
+        'CELERY_BROKER': CELERY_BROKER_URL
     })
 
 # --- Test Task for Celery Debugging ---
@@ -224,15 +224,11 @@ def trigger_test_email():
 # ---------------------------------------
 
 # 🚨 CRITICAL ENVIRONMENT CHECKS 🚨
-# These checks run when Gunicorn imports the application module.
-# They help diagnose environment configuration problems immediately.
-
-if not REDIS_URL:
+if not DATABASE_URL:
     logger.critical(
         "\n\n========================================================================\n"
-        "❌ CRITICAL CONFIG ERROR: REDIS_URL is MISSING or defaults to localhost.\n"
-        "   - Action: This Web Service deploy may FAIL. You MUST set REDIS_URL to your external Redis instance.\n"
+        "❌ CRITICAL CONFIG ERROR: DATABASE_URL is MISSING or defaults to localhost.\n"
+        "   - Action: This Web Service deploy will FAIL. You MUST set DATABASE_URL (PostgreSQL) to proceed.\n"
         "========================================================================\n"
     )
-    # Force process exit to fail the deploy early if config is missing
     sys.exit(1)
