@@ -1,8 +1,8 @@
 from flask import Flask, request, jsonify, render_template, send_from_directory
 from flask_cors import CORS
 import smtplib
-from email.mime.text import MIMEText  
-from email.mime.multipart import MIMEMultipart  
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart 
 import os
 from dotenv import load_dotenv
 import logging
@@ -242,3 +242,4 @@ def test_form():
 # --- REMOVED: Flask's built-in server for production deployment
 # if __name__ == '__main__':
 #     app.run(debug=True, host='0.0.0.0', port=5000)
+
