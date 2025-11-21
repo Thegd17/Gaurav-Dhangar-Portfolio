@@ -1,6 +1,10 @@
 Flask==2.3.3
 Flask-CORS==4.0.0
 python-dotenv==1.0.0
-celery==5.3.6
-redis==5.0.1
 gunicorn==21.2.0
+celery==5.3.6
+
+NEW: Libraries for PostgreSQL support in Python/Celery
+
+psycopg2-binary==2.9.9
+SQLAlchemy==2.0.23
