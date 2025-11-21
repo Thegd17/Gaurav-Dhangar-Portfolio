@@ -1,13 +1,13 @@
 from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 import smtplib
-from email.mime.text import MIMEText  
-from email.mime.multipart import MIMEMultipart  
+from email.mime.text import MIMEText 
+from email.mime.multipart import MIMEMultipart 
 import os
 from dotenv import load_dotenv
 import logging
 from datetime import datetime
-from celery import Celery # ⬅️ New Import
+from celery import Celery
 
 # Load environment variables
 load_dotenv()
@@ -42,7 +42,6 @@ class EmailConfig:
 def send_email_task(self, name, email, subject, message):
     """
     Celery task to handle sending the email in the background.
-    Uses 'bind=True' to access the task instance ('self') for retries.
     """
     try:
         logger.info(f"📧 Attempting to send email in background from {name} ({email})")
@@ -53,7 +52,7 @@ def send_email_task(self, name, email, subject, message):
         msg['To'] = EmailConfig.ADMIN_EMAIL
         msg['Subject'] = f"🎯 Portfolio Collaboration: {subject}"
         
-        # HTML email template (same as before)
+        # HTML email template
         html_body = f"""
         <html>
             <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
@@ -86,7 +85,7 @@ def send_email_task(self, name, email, subject, message):
         msg.attach(MIMEText(html_body, 'html'))
         
         logger.info(f"🔗 Connecting to {EmailConfig.SMTP_SERVER}:{EmailConfig.SMTP_PORT}")
-        # Add a timeout to the SMTP connection to avoid indefinite hanging
+        # Added explicit timeout to prevent hanging
         server = smtplib.SMTP(EmailConfig.SMTP_SERVER, EmailConfig.SMTP_PORT, timeout=30) 
         server.starttls()
         logger.info("🔐 Attempting login...")
@@ -99,8 +98,8 @@ def send_email_task(self, name, email, subject, message):
         return True
         
     except Exception as exc:
-        logger.error(f"❌ Failed to send email (Task ID: {self.request.id}): {str(exc)}")
-        # Attempt to retry the task on failure
+        logger.error(f"❌ Failed to send email (Task ID: {self.request.id}, Retries: {self.request.retries}): {str(exc)}")
+        # Retry the task on failure (up to max_retries)
         raise self.retry(exc=exc) 
 
 def save_to_database(name, email, subject, message):
@@ -152,7 +151,7 @@ def handle_contact():
         logger.info(f"New inquiry received from {name} ({email}): {subject}")
         save_to_database(name, email, subject, message)
         
-        # 💥 NEW: Trigger the email sending as an asynchronous task
+        # 💥 Trigger the email sending as an asynchronous task
         send_email_task.delay(name, email, subject, message)
         
         # Return success immediately (Crucial to avoid worker timeout!)
@@ -196,6 +195,7 @@ def test_email(to_email):
         msg['Subject'] = "Celery Test Success"
         msg.attach(MIMEText("This is a test email sent asynchronously via Celery.", 'plain'))
 
+        # Using a shorter timeout for the test
         server = smtplib.SMTP(EmailConfig.SMTP_SERVER, EmailConfig.SMTP_PORT, timeout=10)
         server.starttls()
         server.login(EmailConfig.EMAIL_USERNAME, EmailConfig.EMAIL_PASSWORD)
@@ -218,7 +218,6 @@ def trigger_test_email():
     })
 # ---------------------------------------
 
+# NOTE: The __main__ block is intentionally commented out for Gunicorn deployment.
 # if __name__ == '__main__':
-#     # NOTE: In production (Render/Gunicorn), this block is usually not used.
-#     # Gunicorn or your specific hosting platform should handle running the app.
 #     app.run(debug=True, host='0.0.0.0', port=5000)
