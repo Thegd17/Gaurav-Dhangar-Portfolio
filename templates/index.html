@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gaurav Dhangar | AIML Portfolio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': '#3B82F6',
+                        'secondary': '#10B981',
+                        'accent': '#8B5CF6',
+                        'dark-bg': '#111827',
+                        'dark-card': '#1F2937',
+                    },
+                    fontFamily: {
+                        'inter': ['Inter', 'sans-serif'],
+                        'space': ['Space Grotesk', 'sans-serif'],
+                    },
+                    animation: {
+                        'float': 'float 6s ease-in-out infinite',
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'spin-slow': 'spin 8s linear infinite',
+                    },
+                    keyframes: {
+                        'float': {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #111827;
+            color: #F9FAFB;
+            overflow-x: hidden;
+        }
+
+        /* Success Notification */
+        .success-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #10B981, #059669);
+            color: white;
+            padding: 20px 25px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(16, 185, 129, 0.3);
+            z-index: 1000;
+            transform: translateX(400px);
+            opacity: 0;
+            transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            max-width: 400px;
+        }
+
+        .success-notification.show {
+            transform: translateX(0);
+            opacity: 1;
+        }
+
+        .success-notification.hide {
+            transform: translateX(400px);
+            opacity: 0;
+        }
+
+        .success-icon {
+            width: 24px;
+            height: 24px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .success-icon i {
+            color: #10B981;
+            font-size: 14px;
+        }
+
+        .notification-content {
+            flex: 1;
+        }
+
+        .notification-title {
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 4px;
+        }
+
+        .notification-message {
+            font-size: 14px;
+            opacity: 0.9;
+            line-height: 1.4;
+        }
+
+        /* Error Notification */
+        .error-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #EF4444, #DC2626);
+            color: white;
+            padding: 20px 25px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(239, 68, 68, 0.3);
+            z-index: 1000;
+            transform: translateX(400px);
+            opacity: 0;
+            transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            max-width: 400px;
+        }
+
+        .error-notification.show {
+            transform: translateX(0);
+            opacity: 1;
+        }
+
+        .error-notification.hide {
+            transform: translateX(400px);
+            opacity: 0;
+        }
+
+        .error-icon {
+            width: 24px;
+            height: 24px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .error-icon i {
+            color: #EF4444;
+            font-size: 14px;
+        }
+        
+        .gradient-text {
+            background: linear-gradient(90deg, #3B82F6, #10B981, #8B5CF6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-size: 200% auto;
+            animation: gradient 3s ease infinite;
+        }
+        
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(59, 130, 246, 0.15);
+        }
+        
+        .skill-icon {
+            transition: all 0.3s ease;
+        }
+        
+        .skill-icon:hover {
+            transform: scale(1.1);
+        }
+        
+        .nav-link {
+            position: relative;
+        }
+        
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -5px;
+            left: 0;
+            background-color: #3B82F6;
+            transition: width 0.3s ease;
+        }
+        
+        .nav-link:hover::after {
+            width: 100%;
+        }
+        
+        .form-input {
+            background: rgba(31, 41, 55, 0.7);
+            border: 1px solid #374151;
+            transition: all 0.3s ease;
+        }
+        
+        .form-input:focus {
+            border-color: #3B82F6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .floating-shape {
+            position: absolute;
+            border-radius: 50%;
+            background: linear-gradient(45deg, rgba(59, 130, 246, 0.1), rgba(16, 185, 129, 0.1));
+            animation: float 15s infinite linear;
+            z-index: -1;
+        }
+        
+        .social-icon {
+            transition: all 0.3s ease;
+        }
+        
+        .social-icon:hover {
+            transform: translateY(-3px);
+        }
+        
+        .project-image {
+            transition: all 0.5s ease;
+        }
+        
+        .project-card:hover .project-image {
+            transform: scale(1.05);
+        }
+
+        /* Profile Picture Cool Animation */
+        .profile-glow {
+            position: relative;
+            z-index: 1;
+        }
+        .profile-glow::before {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            border-radius: 50%;
+            padding: 4px;
+            background: linear-gradient(45deg, #3B82F6, #10B981, #8B5CF6, #3B82F6);
+            background-size: 400% 400%;
+            z-index: -1;
+            animation: spin-glow 4s linear infinite;
+        }
+        @keyframes spin-glow {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+    </style>
+</head>
+<body class="font-inter">
+    <!-- Navigation -->
+    <nav class="fixed w-full z-50 bg-dark-bg/90 backdrop-blur-sm border-b border-gray-800">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="#" class="text-2xl font-space font-bold gradient-text">GAURAV DHANGAR</a>
+            <div class="hidden md:flex space-x-8">
+                <a href="#about" class="nav-link text-gray-300 hover:text-white transition-colors">About</a>
+                <a href="#skills" class="nav-link text-gray-300 hover:text-white transition-colors">Skills</a>
+                <a href="#projects" class="nav-link text-gray-300 hover:text-white transition-colors">Projects</a>
+                <a href="#certificates" class="nav-link text-gray-300 hover:text-white transition-colors">Certificates</a>
+                <a href="#contact" class="nav-link text-gray-300 hover:text-white transition-colors">Contact</a>
+            </div>
+            <button class="md:hidden text-gray-300" onclick="document.getElementById('mobile-menu').classList.toggle('hidden')">
+                <i class="fas fa-bars text-xl"></i>
+            </button>
+        </div>
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden md:hidden bg-dark-bg border-t border-gray-800 p-4">
+            <div class="flex flex-col space-y-4">
+                <a href="#about" class="text-gray-300 hover:text-white">About</a>
+                <a href="#skills" class="text-gray-300 hover:text-white">Skills</a>
+                <a href="#projects" class="text-gray-300 hover:text-white">Projects</a>
+                <a href="#certificates" class="text-gray-300 hover:text-white">Certificates</a>
+                <a href="#contact" class="text-gray-300 hover:text-white">Contact</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="relative min-h-screen flex items-center justify-center overflow-hidden pt-16">
+        <div class="container mx-auto px-6 text-center z-10">
+            <h1 class="text-5xl md:text-7xl font-space font-bold mb-6">
+                <span class="gradient-text">Gaurav Dhangar</span>
+            </h1>
+            <h2 class="text-2xl md:text-4xl font-inter font-medium mb-8 text-gray-300">
+                AIML & Data Science Specialist
+            </h2>
+            <p class="max-w-2xl mx-auto text-lg md:text-xl text-gray-400 mb-10">
+                Transforming complex data into intelligent solutions through cutting-edge AI and machine learning technologies.
+            </p>
+            
+            <div class="flex flex-col gap-4">
+                <!-- Primary Actions -->
+                <div class="flex flex-col sm:flex-row justify-center gap-4">
+                    <a href="#projects" class="px-8 py-3 bg-primary text-white font-medium rounded-lg hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20">
+                        <i class="fas fa-code mr-2"></i>View My Work
+                    </a>
+                    <a href="#contact" class="px-8 py-3 border border-secondary text-secondary font-medium rounded-lg hover:bg-secondary hover:text-dark-bg transition-colors">
+                        <i class="fas fa-envelope mr-2"></i>Contact Me
+                    </a>
+                </div>
+                <!-- Resume Actions -->
+                <div class="flex flex-col sm:flex-row justify-center gap-4 mt-2">
+                    <!-- VIEW RESUME: Links to static file -->
+                    <a href="/static/Gaurav_Dhangar_resume.pdf" target="_blank" class="px-6 py-2 bg-dark-card border border-gray-700 text-gray-300 font-medium rounded-lg hover:border-primary hover:text-primary transition-colors text-sm">
+                        <i class="fas fa-eye mr-2"></i>View Resume
+                    </a>
+                    <!-- DOWNLOAD RESUME: Links to Flask route for forced download -->
+                    <a href="/static/Gaurav_Dhangar_resume.pdf" class="px-6 py-2 bg-dark-card border border-gray-700 text-gray-300 font-medium rounded-lg hover:border-secondary hover:text-secondary transition-colors text-sm">
+                        <i class="fas fa-download mr-2"></i>Download Resume
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Floating shapes -->
+        <div class="floating-shape w-64 h-64 -top-32 -left-32 opacity-30"></div>
+        <div class="floating-shape w-96 h-96 -bottom-48 -right-48 opacity-20" style="animation-duration: 20s;"></div>
+        <div class="floating-shape w-32 h-32 top-1/4 right-1/4 opacity-40" style="animation-duration: 12s;"></div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="py-20 bg-dark-card">
+        <div class="container mx-auto px-6">
+            <h2 class="text-4xl font-space font-bold text-center mb-16 gradient-text">About Me</h2>
+            <div class="flex flex-col lg:flex-row items-center gap-12">
+                <div class="lg:w-2/5 flex justify-center">
+                    <!-- Profile Picture with Round Frame and Animation -->
+                    <div class="relative w-72 h-72 profile-glow">
+                        <div class="w-full h-full rounded-full overflow-hidden border-4 border-dark-bg shadow-2xl relative z-10 bg-dark-bg">
+                            <!-- Using a placeholder if image fails, make sure path is correct -->
+                            <img src="/static/Profile_Picture.jpeg" onerror="this.src='https://ui-avatars.com/api/?name=Gaurav+Dhangar&background=random&size=300'" alt="Gaurav Dhangar" class="w-full h-full object-cover">
+                        </div>
+                    </div>
+                </div>
+                <div class="lg:w-3/5">
+                    <h3 class="text-2xl font-space mb-6 text-primary">B.Tech AIML Graduate</h3>
+                    <p class="text-lg text-gray-300 mb-6">
+                        I'm a passionate Artificial Intelligence and Machine Learning specialist with a strong foundation in developing intelligent systems that solve real-world challenges. My expertise spans across the entire AI spectrum from traditional machine learning to cutting-edge generative AI.
+                    </p>
+                    <p class="text-lg text-gray-300 mb-6">
+                        With a keen eye for detail and a problem-solving mindset, I thrive on transforming complex datasets into actionable insights and building scalable AI solutions that drive innovation and efficiency.
+                    </p>
+                    <div class="flex flex-wrap gap-4 mt-8">
+                        <div class="px-4 py-2 bg-dark-bg rounded-lg border border-primary/30">
+                            <span class="text-primary">AI/ML Development</span>
+                        </div>
+                        <div class="px-4 py-2 bg-dark-bg rounded-lg border border-secondary/30">
+                            <span class="text-secondary">Data Analysis</span>
+                        </div>
+                        <div class="px-4 py-2 bg-dark-bg rounded-lg border border-accent/30">
+                            <span class="text-accent">Model Deployment</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Skills Section -->
+    <section id="skills" class="py-20 bg-dark-bg">
+        <div class="container mx-auto px-6">
+            <h2 class="text-4xl font-space font-bold text-center mb-16 gradient-text">Technical Skills</h2>
+            <div id="skills-container" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+                <!-- Skills injected via JS -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Projects Section -->
+    <section id="projects" class="py-20 bg-dark-card">
+        <div class="container mx-auto px-6">
+            <h2 class="text-4xl font-space font-bold text-center mb-16 gradient-text">Project Portfolio</h2>
+            <div id="projects-container" class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Projects injected via JS -->
+            </div>
+            
+            <div class="text-center mt-12">
+                <a href="#" class="px-6 py-3 border border-primary text-primary font-medium rounded-lg hover:bg-primary hover:text-white transition-colors">
+                    View All Projects
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Certificates Section (UPDATED DESIGN) -->
+    <section id="certificates" class="py-20 bg-dark-bg relative overflow-hidden">
+        <div class="absolute inset-0 opacity-5 bg-[radial-gradient(#3B82F6_1px,transparent_1px)] [background-size:16px_16px]"></div>
+        <div class="container mx-auto px-6 relative z-10">
+            <h2 class="text-4xl font-space font-bold text-center mb-16 gradient-text">Certifications</h2>
+            <!-- Updated Grid for Image Cards -->
+            <div id="certificates-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Certificates injected via JS with Background Images -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="py-20 bg-dark-card">
+        <div class="container mx-auto px-6">
+            <h2 class="text-4xl font-space font-bold text-center mb-16 gradient-text">Get In Touch</h2>
+            <div class="flex flex-col lg:flex-row gap-12">
+                <div class="lg:w-2/5">
+                    <h3 class="text-2xl font-space font-bold text-white mb-6">Let's Connect</h3>
+                    <p class="text-gray-300 mb-8">
+                        I'm always open to discussing new opportunities, collaborations, and innovative projects. Feel free to reach out if you want to connect or work together!
+                    </p>
+                    
+                    <div class="mb-8">
+                        <h4 class="text-xl font-space font-bold text-primary mb-4">Find me online</h4>
+                        <div id="socials-container" class="flex space-x-6">
+                            <!-- Socials injected via JS -->
+                        </div>
+                    </div>
+                    
+                    <div class="bg-dark-bg p-6 rounded-xl border border-gray-800">
+                        <h4 class="text-xl font-space font-bold text-white mb-4">Contact Information</h4>
+                        <div class="space-y-4">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center mr-4">
+                                    <i class="fas fa-envelope text-primary"></i>
+                                </div>
+                                <div>
+                                    <p class="text-gray-400 text-sm">Email</p>
+                                    <p class="text-white">gauravdhangar50@gmail.com</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-full bg-secondary/20 flex items-center justify-center mr-4">
+                                    <i class="fas fa-phone text-secondary"></i>
+                                </div>
+                                <div>
+                                    <p class="text-gray-400 text-sm">Phone</p>
+                                    <p class="text-white">+91 7666344905</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center mr-4">
+                                    <i class="fas fa-map-marker-alt text-accent"></i>
+                                </div>
+                                <div>
+                                    <p class="text-gray-400 text-sm">Location</p>
+                                    <p class="text-white">India</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="lg:w-3/5">
+                    <form id="collaboration-form" class="bg-dark-bg p-8 rounded-xl border border-gray-800 shadow-xl">
+                        <h3 class="text-2xl font-space font-bold text-white mb-6">Collaboration Inquiry</h3>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                            <div>
+                                <label for="name" class="block text-gray-300 mb-2">Your Name</label>
+                                <input type="text" id="name" class="w-full px-4 py-3 form-input rounded-lg text-white" required>
+                            </div>
+                            
+                            <div>
+                                <label for="email" class="block text-gray-300 mb-2">Your Email</label>
+                                <input type="email" id="email" class="w-full px-4 py-3 form-input rounded-lg text-white" required>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-6">
+                            <label for="subject" class="block text-gray-300 mb-2">Subject</label>
+                            <input type="text" id="subject" class="w-full px-4 py-3 form-input rounded-lg text-white" required>
+                        </div>
+                        
+                        <div class="mb-6">
+                            <label for="message" class="block text-gray-300 mb-2">Your Message</label>
+                            <textarea id="message" rows="5" class="w-full px-4 py-3 form-input rounded-lg text-white" required></textarea>
+                        </div>
+                        
+                        <button type="submit" class="w-full bg-primary text-white font-medium py-3 rounded-lg hover:bg-blue-600 transition-colors">
+                            Send Message
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Success Notification -->
+    <div id="successNotification" class="success-notification">
+        <div class="success-icon">
+            <i class="fas fa-check"></i>
+        </div>
+        <div class="notification-content">
+            <div class="notification-title">Message Sent! 🚀</div>
+            <div class="notification-message">Thank you for reaching out! I'll get back to you soon.</div>
+        </div>
+    </div>
+
+    <!-- Error Notification -->
+    <div id="errorNotification" class="error-notification">
+        <div class="error-icon">
+            <i class="fas fa-exclamation"></i>
+        </div>
+        <div class="notification-content">
+            <div class="notification-title">Oops! Something went wrong</div>
+            <div class="notification-message" id="errorMessage">Please try again later.</div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="py-8 bg-dark-bg border-t border-gray-800">
+        <div class="container mx-auto px-6">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                <p class="text-gray-400 text-sm">© 2025 Gaurav Dhangar. All Rights Reserved.</p>
+                
+                <!-- Added Socials to Footer -->
+                <div id="footer-socials" class="flex space-x-4">
+                    <!-- Footer socials injected JS -->
+                </div>
+
+                <div class="flex space-x-6">
+                    <a href="#" class="text-gray-400 text-sm hover:text-primary transition-colors">Privacy Policy</a>
+                    <a href="#" class="text-gray-400 text-sm hover:text-primary transition-colors">Terms of Service</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- CONTENT MANAGEMENT SCRIPT -->
+    <!-- EDIT THIS SECTION TO CHANGE YOUR CONTENT -->
+    <script>
+        const portfolioData = {
+            socials: [
+                { icon: 'fab fa-github', url: 'https://github.com/Thegd17', color: 'hover:text-primary' },
+                { icon: 'fab fa-linkedin', url: 'https://www.linkedin.com/in/gauravdhangar2002', color: 'hover:text-primary' },
+                { icon: 'fab fa-twitter', url: 'https://x.com/GauravDhangar20', color: 'hover:text-secondary' }, // Twitter Added
+                { icon: 'fab fa-kaggle', url: 'https://www.kaggle.com/gauravddhanagr', color: 'hover:text-accent' },
+            ],
+            skills: [
+                { name: 'AI', icon: 'fas fa-brain', color: 'primary' },
+                { name: 'ML', icon: 'fas fa-chart-line', color: 'secondary' },
+                { name: 'DL', icon: 'fas fa-network-wired', color: 'primary' },
+                { name: 'Computer Vision', icon: 'fas fa-eye', color: 'accent' },
+                { name: 'NLP', icon: 'fas fa-language', color: 'secondary' },
+                { name: 'GenAI', icon: 'fas fa-robot', color: 'primary' },
+                { name: 'Agentic AI', icon: 'fas fa-cogs', color: 'accent' },
+                { name: 'Data Science', icon: 'fas fa-database', color: 'secondary' },
+                { name: 'Python', icon: 'fab fa-python', color: 'primary' },
+                { name: 'SQL', icon: 'fas fa-server', color: 'accent' }
+            ],
+            projects: [
+                {
+                    title: "AI Recipe Creator",
+                    desc: "Smart web app that transforms images of ingredients into delicious recipes using AI and Google's Gemini.",
+                    tags: ["Flask", "Python", "Google Gemini AI", "JavaScript"],
+                    icon: "fas fa-utensils",
+                    color: "primary",
+                    link: "https://ai-recipe-generator-0ncx.onrender.com/",
+                    liveLink: "https://ai-recipe-generator-0ncx.onrender.com/"
+                },
+                {
+                    title: "Sentiment Analysis Web App",
+                    desc: "Flask web application that performs real-time sentiment analysis on text using scikit-learn machine learning model.",
+                    tags: ["Flask", "Python", "scikit-learn", "Machine Learning"],
+                    icon: "fas fa-chart-line",
+                    color: "secondary",
+                    link: "https://gauravdhangar-sentiment-analysis-ui.hf.space/?__theme=system&deep_link=BD7x-hLScAE",
+                    liveLink: "https://gauravdhangar-sentiment-analysis-ui.hf.space/?__theme=system&deep_link=BD7x-hLScAE"
+                },
+                {
+                    title: "Predictive Analytics Platform",
+                    desc: "Comprehensive data science platform for forecasting trends and data-driven decisions.",
+                    tags: ["Data Science", "ML", "Python"],
+                    icon: "fas fa-chart-bar",
+                    color: "accent",
+                    link: "#",
+                    liveLink: "#"
+                },
+                {
+                    title: "Generative Art Creator",
+                    desc: "AI system generating unique artwork using advanced generative adversarial networks.",
+                    tags: ["GenAI", "GANs", "PyTorch"],
+                    icon: "fas fa-image",
+                    color: "primary",
+                    link: "#",
+                    liveLink: "#"
+                }
+            ],
+            // UPDATE THESE FILENAMES TO MATCH YOUR FILES
+            certificates: [
+                {
+                    title: "Machine Learning Engineer",
+                    issuer: "Symbiosis Skills & Professional University",
+                    date: "Aug 2024",
+                    image: "/static/Certificates Images/ML.jpg", 
+                    link: "/static/certificates/ML.pdf"
+                },
+                {
+                    title: "AWS Academy Cloud Foundations",
+                    issuer: "AWS Academy",
+                    date: "Jul 2023",
+                    image: "/static/Certificates Images/aws.PNG",
+                    link: "/static/certificates/AWS.pdf"
+                },
+                {
+                    title: "Masterclass on Artificial Intelligence",
+                    issuer: "Pantech e Learning",
+                    date: "Dec 2022",
+                    image: "static/Certificates Images/pantech.PNG",
+                    link: "/static/certificates/Pantech.pdf"
+                },
+                {
+                    title: "Preleaf Coding Carnival",
+                    issuer: "Masai School",
+                    date: "Nov 2022",
+                    image: "/static/Certificates Images/masai.PNG",
+                    link: "/static/certificates/Masai.pdf"
+                }
+            ]
+        };
+
+        // Render Functions
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            // Render Skills
+            const skillsContainer = document.getElementById('skills-container');
+            portfolioData.skills.forEach(skill => {
+                const colors = {
+                    primary: 'bg-primary/20 text-primary',
+                    secondary: 'bg-secondary/20 text-secondary',
+                    accent: 'bg-accent/20 text-accent'
+                };
+                const html = `
+                <div class="skill-icon bg-dark-card p-6 rounded-xl border border-gray-800 text-center card-hover">
+                    <div class="w-16 h-16 rounded-full ${colors[skill.color]} flex items-center justify-center mx-auto mb-4">
+                        <i class="${skill.icon} text-2xl"></i>
+                    </div>
+                    <h3 class="text-lg font-medium text-white">${skill.name}</h3>
+                </div>`;
+                skillsContainer.insertAdjacentHTML('beforeend', html);
+            });
+
+            // Render Projects
+            const projectsContainer = document.getElementById('projects-container');
+            portfolioData.projects.forEach(project => {
+                const colorClasses = {
+                    primary: 'from-primary/30 to-accent/30 text-primary',
+                    secondary: 'from-secondary/30 to-primary/30 text-secondary',
+                    accent: 'from-accent/30 to-secondary/30 text-accent'
+                };
+                
+                const tagsHtml = project.tags.map(tag => {
+                    // Simple logic to rotate tag colors based on name length for variety
+                    const tagColor = tag.length % 3 === 0 ? 'bg-primary/20 text-primary' : 
+                                     tag.length % 3 === 1 ? 'bg-secondary/20 text-secondary' : 'bg-accent/20 text-accent';
+                    return `<span class="px-3 py-1 ${tagColor} text-sm rounded-full">${tag}</span>`;
+                }).join('');
+
+                const html = `
+                <div class="project-card bg-dark-bg rounded-xl overflow-hidden border border-gray-800 card-hover flex flex-col">
+                    <div class="h-48 overflow-hidden relative group">
+                        <div class="project-image w-full h-full bg-gradient-to-r ${colorClasses[project.color].split(' ')[0]} ${colorClasses[project.color].split(' ')[1]} flex items-center justify-center">
+                            <i class="${project.icon} text-6xl ${colorClasses[project.color].split(' ')[2]}"></i>
+                        </div>
+                        <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
+                            <a href="${project.link}" class="p-3 bg-white/10 rounded-full hover:bg-primary hover:text-white transition-colors text-white backdrop-blur-sm" title="View Details">
+                                <i class="fas fa-link"></i>
+                            </a>
+                            <a href="${project.liveLink}" target="_blank" rel="noopener noreferrer" class="p-3 bg-white/10 rounded-full hover:bg-secondary hover:text-white transition-colors text-white backdrop-blur-sm" title="Live Demo">
+                                <i class="fas fa-external-link-alt"></i>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="p-6 flex-1 flex flex-col">
+                        <h3 class="text-xl font-space font-bold text-white mb-2">${project.title}</h3>
+                        <p class="text-gray-400 mb-4 flex-1">${project.desc}</p>
+                        <div class="flex flex-wrap gap-2 mb-6">
+                            ${tagsHtml}
+                        </div>
+                        <div class="flex gap-3 mt-auto">
+                            <a href="${project.link}" class="flex-1 text-center py-2 rounded-lg border border-primary/50 text-primary hover:bg-primary hover:text-white transition-colors text-sm font-medium">
+                                View Project
+                            </a>
+                            <a href="${project.liveLink}" target="_blank" rel="noopener noreferrer" class="flex-1 text-center py-2 rounded-lg bg-secondary/10 text-secondary hover:bg-secondary hover:text-white transition-colors text-sm font-medium flex items-center justify-center gap-2">
+                                <i class="fas fa-circle text-[8px] animate-pulse"></i> Live Demo
+                            </a>
+                        </div>
+                    </div>
+                </div>`;
+                projectsContainer.insertAdjacentHTML('beforeend', html);
+            });
+
+            // Render Certificates (NEW LOGIC FOR BACKGROUND IMAGES)
+            const certsContainer = document.getElementById('certificates-container');
+            portfolioData.certificates.forEach(cert => {
+                // Default placeholder if image fails to load or is not provided
+                const bgImage = cert.image || 'https://placehold.co/600x400/1F2937/3B82F6?text=Certificate';
+                
+                const html = `
+                <div class="relative h-64 rounded-xl overflow-hidden border border-gray-800 card-hover group cursor-pointer shadow-lg" onclick="window.open('${cert.link}', '_blank')">
+                    <!-- Background Image with Zoom Effect -->
+                    <div class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110" 
+                         style="background-image: url('${bgImage}');">
+                    </div>
+                    
+                    <!-- Dark Gradient Overlay for Readability -->
+                    <div class="absolute inset-0 bg-gradient-to-t from-dark-bg via-dark-bg/90 to-transparent opacity-90 transition-opacity duration-300"></div>
+                    
+                    <!-- Content Positioned at Bottom -->
+                    <div class="absolute bottom-0 left-0 w-full p-6 z-10">
+                        <div class="mb-2 inline-block px-2 py-1 bg-primary/20 text-primary text-xs font-semibold rounded backdrop-blur-sm border border-primary/20">
+                            ${cert.date}
+                        </div>
+                        <h3 class="text-lg font-space font-bold text-white mb-1 leading-tight group-hover:text-primary transition-colors">${cert.title}</h3>
+                        <p class="text-sm text-gray-300 mb-2">${cert.issuer}</p>
+                        
+                        <div class="flex items-center text-primary text-sm font-medium opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+                            View Credential <i class="fas fa-arrow-right ml-2"></i>
+                        </div>
+                    </div>
+                </div>`;
+                certsContainer.insertAdjacentHTML('beforeend', html);
+            });
+
+           // Render Socials (Contact & Footer)
+            const socialsContainer = document.getElementById('socials-container');
+            const footerSocials = document.getElementById('footer-socials');
+            
+            portfolioData.socials.forEach(social => {
+                // Added target="_blank" and rel="noopener noreferrer"
+                const html = `
+                <a href="${social.url}" target="_blank" rel="noopener noreferrer" class="social-icon text-2xl text-gray-400 ${social.color}">
+                    <i class="${social.icon}"></i>
+                </a>`;
+                socialsContainer.insertAdjacentHTML('beforeend', html);
+                
+                // Slightly smaller for footer - Added target="_blank" and rel="noopener noreferrer"
+                const footerHtml = `
+                <a href="${social.url}" target="_blank" rel="noopener noreferrer" class="text-xl text-gray-400 ${social.color} transition-colors">
+                    <i class="${social.icon}"></i>
+                </a>`;
+                footerSocials.insertAdjacentHTML('beforeend', footerHtml);
+            });
+        });
+
+
+        // Form Submission Logic
+        document.getElementById('collaboration-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const btn = this.querySelector('button[type="submit"]');
+            const originalText = btn.innerHTML;
+            
+            // Loading State
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Sending...';
+            btn.disabled = true;
+
+            const formData = {
+                name: document.getElementById('name').value,
+                email: document.getElementById('email').value,
+                subject: document.getElementById('subject').value,
+                message: document.getElementById('message').value
+            };
+
+            try {
+                const response = await fetch('/api/contact', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    showSuccessNotification(result.message);
+                    this.reset();
+                } else {
+                    showErrorNotification(result.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showErrorNotification('Failed to connect to server. Please try again.');
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        });
+
+        // Notification Utils
+        function showSuccessNotification(msg) {
+            const notif = document.getElementById('successNotification');
+            notif.querySelector('.notification-message').textContent = msg;
+            notif.classList.remove('hide');
+            notif.classList.add('show');
+            setTimeout(() => hideNotification(notif), 5000);
+        }
+
+        function showErrorNotification(msg) {
+            const notif = document.getElementById('errorNotification');
+            document.getElementById('errorMessage').textContent = msg;
+            notif.classList.remove('hide');
+            notif.classList.add('show');
+            setTimeout(() => hideNotification(notif), 5000);
+        }
+
+        function hideNotification(el) {
+            el.classList.remove('show');
+            el.classList.add('hide');
+        }
+
+        // Close on click
+        document.querySelectorAll('.success-notification, .error-notification').forEach(el => {
+            el.addEventListener('click', () => hideNotification(el));
+        });
+    </script>
+</body>
+</html>
